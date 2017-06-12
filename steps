@@ -1,0 +1,27 @@
+Limit Mongodb Memory Usage using cgroups:
+
+Stop Mongod Service
+
+1. Create control group:
+
+cgcreate -g memory:MongoLimitGroup
+
+2. Specify how much memory needs to be allocated for this group:
+
+echo $(( 2048 * 1024 * 1024 )) > /sys/fs/cgroup/memory/MongoLimitGroup/memory.limit_in_bytes
+
+This command limits memory to 2 GB (This limits the memory for both malloc allocations and OS cache)
+
+3. Drop pages already stayed in cache using below command:
+
+sync; echo 3 > /proc/sys/vm/drop_caches
+
+4. Now assign a server to be created control group:
+
+mongod --fork --dbpath /var/lib/mongo --logpath /var/log/mongodb/mongod.log (this will give you the mongod_pid)
+
+cgclassify -g memory:MongoLimitGroup 3323
+
+This will assign a running mongod process to a group limited by only 2 GB memory.
+
+If you wanted to restart MongoDB, kill PID of mongod, then run the same commands from step 4.
